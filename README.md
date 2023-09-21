@@ -14,7 +14,7 @@ from the root directory of this package.
 
 Dynamic Graph             |  TGN	
 :-------------------------:|:-------------------------:	
-![](TGN/figures/dynamic_graph.png)  |  ![](TGN/figures/tgn.png)	
+![](TTGN/figures/dynamic_graph.png)  |  ![](TTGN/figures/tgn.png)	
 
 
 

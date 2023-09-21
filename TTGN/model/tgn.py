@@ -3,13 +3,13 @@ import numpy as np
 import torch
 from collections import defaultdict
 
-from TGN.utils.utils import MergeLayer
-from TGN.modules.memory import Memory
-from TGN.modules.message_aggregator import get_message_aggregator
-from TGN.modules.message_function import get_message_function
-from TGN.modules.memory_updater import get_memory_updater
-from TGN.modules.embedding_module import get_embedding_module
-from TGN.model.time_encoding import TimeEncode
+from TTGN.utils.utils import MergeLayer
+from TTGN.modules.memory import Memory
+from TTGN.modules.message_aggregator import get_message_aggregator
+from TTGN.modules.message_function import get_message_function
+from TTGN.modules.memory_updater import get_memory_updater
+from TTGN.modules.embedding_module import get_embedding_module
+from TTGN.model.time_encoding import TimeEncode
 
 
 class TGN(torch.nn.Module):
@@ -208,7 +208,7 @@ class TGN(torch.nn.Module):
                                    perform_memory_update: bool = True):
         """
     Compute probabilities for edges between sources and destination and between sources and
-    negatives by first computing temporal embeddings using the TGN encoder and then feeding them
+    negatives by first computing temporal embeddings using the TTGN encoder and then feeding them
     into the MLP decoder.
     :param destination_nodes [batch_size]: destination ids
     :param negative_nodes [batch_size]: ids of negative sampled destination
