@@ -14,7 +14,7 @@ from TTGN.model.time_encoding import TimeEncode
 
 class TGN(torch.nn.Module):
     def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
-                 n_heads=2, dropout=0.1, use_memory=False,
+                 n_heads=2, dropout=0.1, use_memory=False, prohibit_memory_update=False,
                  memory_update_at_start=True, message_dimension=100,
                  memory_dimension=500, embedding_module_type="graph_attention",
                  message_function="mlp",
@@ -45,6 +45,7 @@ class TGN(torch.nn.Module):
         self.dyrep = dyrep
 
         self.use_memory = use_memory
+        self.forbidden_memory_update = prohibit_memory_update
         self.time_encoder = TimeEncode(dimension=self.n_node_features)
         self.memory = None
 
@@ -98,7 +99,8 @@ class TGN(torch.nn.Module):
                                          1)
 
     def compute_temporal_embeddings(self, source_nodes, destination_nodes, negative_nodes, edge_times,
-                                    edge_idxs, n_neighbors=20, perform_memory_update: bool = True):
+                                    edge_idxs, n_neighbors=20, perform_memory_update: bool = True,
+                                    edge_idx_preserve_list=None, candidate_weights_dict=None):
         """
     Compute temporal embeddings for sources, destinations, and negatively sampled destinations.
 
@@ -157,7 +159,10 @@ class TGN(torch.nn.Module):
                                                                  timestamps=timestamps,
                                                                  n_layers=self.n_layers,
                                                                  n_neighbors=n_neighbors,
-                                                                 time_diffs=time_diffs)
+                                                                 time_diffs=time_diffs,
+                                                                 edge_idx_preserve_list=edge_idx_preserve_list,
+                                                                 candidate_weights_dict=candidate_weights_dict
+                                                                 )
 
         source_node_embedding = node_embedding[:n_samples]
         destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
@@ -205,10 +210,11 @@ class TGN(torch.nn.Module):
 
     def compute_edge_probabilities(self, source_nodes, destination_nodes, negative_nodes, edge_times,
                                    edge_idxs, n_neighbors=20, result_as_logit: bool = False,
-                                   perform_memory_update: bool = True):
+                                   perform_memory_update: bool = True, edge_idx_preserve_list=None,
+                                   candidate_weights_dict=None):
         """
     Compute probabilities for edges between sources and destination and between sources and
-    negatives by first computing temporal embeddings using the TTGN encoder and then feeding them
+    negatives by first computing temporal embeddings using the TGN encoder and then feeding them
     into the MLP decoder.
     :param destination_nodes [batch_size]: destination ids
     :param negative_nodes [batch_size]: ids of negative sampled destination
@@ -218,10 +224,15 @@ class TGN(torch.nn.Module):
     layer
     :return: Probabilities for both the positive and negative edges
     """
+        if candidate_weights_dict is not None:
+            if hasattr(self.embedding_module, 'atten_weights_list'):  # ! avoid cuda memory leakage
+                self.embedding_module.atten_weights_list = []
+
         n_samples = len(source_nodes)
         source_node_embedding, destination_node_embedding, negative_node_embedding = self.compute_temporal_embeddings(
             source_nodes, destination_nodes, negative_nodes, edge_times, edge_idxs, n_neighbors,
-            perform_memory_update=perform_memory_update)
+            perform_memory_update=perform_memory_update, edge_idx_preserve_list=edge_idx_preserve_list,
+            candidate_weights_dict=candidate_weights_dict)
 
         if negative_nodes is not None:
             score = self.affinity_score(torch.cat([source_node_embedding, source_node_embedding], dim=0),

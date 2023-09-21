@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from TGN.utils.utils import MergeLayer
+from TTGN.utils.utils import MergeLayer
 
 
 class TemporalAttentionLayer(torch.nn.Module):
@@ -58,17 +58,20 @@ class TemporalAttentionLayer(torch.nn.Module):
     key = key.permute([1, 0, 2])  # [n_neighbors, batch_size, num_of_features]
 
     # Compute mask of which source nodes have no valid neighbors
-    invalid_neighborhood_mask = neighbors_padding_mask.all(dim=1, keepdim=True)
+    # invalid_neighborhood_mask = neighbors_padding_mask.all(dim=1, keepdim=True)
     # If a source node has no valid neighbor, set it's first neighbor to be valid. This will
     # force the attention to just 'attend' on this neighbor (which has the same features as all
     # the others since they are fake neighbors) and will produce an equivalent result to the
     # original tgat paper which was forcing fake neighbors to all have same attention of 1e-10
-    neighbors_padding_mask[invalid_neighborhood_mask.squeeze(), 0] = False
+    # neighbors_padding_mask[invalid_neighborhood_mask.squeeze(), 0] = False
 
     # print(query.shape, key.shape)
 
+    attn_mask = neighbors_padding_mask
+    attn_mask = attn_mask.unsqueeze(1).repeat(self.n_head, 1, 1)
+
     attn_output, attn_output_weights = self.multi_head_target(query=query, key=key, value=key,
-                                                              key_padding_mask=neighbors_padding_mask)
+                                                              attn_mask=attn_mask)
 
     # mask = torch.unsqueeze(neighbors_padding_mask, dim=2)  # mask [B, N, 1]
     # mask = mask.permute([0, 2, 1])
@@ -81,8 +84,8 @@ class TemporalAttentionLayer(torch.nn.Module):
     # Source nodes with no neighbors have an all zero attention output. The attention output is
     # then added or concatenated to the original source node features and then fed into an MLP.
     # This means that an all zero vector is not used.
-    attn_output = attn_output.masked_fill(invalid_neighborhood_mask, 0)
-    attn_output_weights = attn_output_weights.masked_fill(invalid_neighborhood_mask, 0)
+    # attn_output = attn_output.masked_fill(invalid_neighborhood_mask, 0)
+    # attn_output_weights = attn_output_weights.masked_fill(invalid_neighborhood_mask, 0)
 
     # Skip connection with temporal attention over neighborhood and the features of the node itself
     attn_output = self.merger(attn_output, src_node_features)
