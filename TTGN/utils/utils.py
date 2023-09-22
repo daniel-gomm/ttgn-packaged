@@ -205,7 +205,7 @@ class NeighborFinder:
         # else:
         #     return neighbors_idx[:left], neighbors_e_idx[:left], neighbors_ts[:left]
 
-    def get_temporal_neighbor(self, src_idx_l, cut_time_l, num_neighbors=20, edge_idx_preserve_list=None):
+    def get_temporal_neighbor(self, src_idx_l, cut_time_l, n_neighbors=20, edge_idx_preserve_list=None):
         """
     Params
     ------
@@ -214,9 +214,9 @@ class NeighborFinder:
     """
         assert (len(src_idx_l) == len(cut_time_l))
 
-        out_ngh_node_batch = np.zeros((len(src_idx_l), num_neighbors)).astype(np.int32)
-        out_ngh_t_batch = np.zeros((len(src_idx_l), num_neighbors)).astype(np.float32)
-        out_ngh_eidx_batch = np.zeros((len(src_idx_l), num_neighbors)).astype(np.int32)
+        out_ngh_node_batch = np.zeros((len(src_idx_l), n_neighbors)).astype(np.int32)
+        out_ngh_t_batch = np.zeros((len(src_idx_l), n_neighbors)).astype(np.float32)
+        out_ngh_eidx_batch = np.zeros((len(src_idx_l), n_neighbors)).astype(np.int32)
 
         for i, (src_idx, cut_time) in enumerate(zip(src_idx_l, cut_time_l)):
             ngh_idx, ngh_eidx, ngh_ts = self.find_before(src_idx, cut_time)
@@ -229,7 +229,7 @@ class NeighborFinder:
                 if self.uniform:
                     raise NotImplementedError('Should not use this scheme')
                     sampled_idx = np.random.randint(0, len(ngh_idx),
-                                                    num_neighbors)  # sample 'num_neighbors' neighbors in the ngh_idx.
+                                                    n_neighbors)  # sample 'num_neighbors' neighbors in the ngh_idx.
 
                     out_ngh_node_batch[i, :] = ngh_idx[sampled_idx]
                     out_ngh_t_batch[i, :] = ngh_ts[sampled_idx]
@@ -247,9 +247,9 @@ class NeighborFinder:
                     # ngh_eidx = ngh_eidx[:num_neighbors]
 
                     # get recent temporal edges
-                    ngh_ts = ngh_ts[-num_neighbors:]
-                    ngh_idx = ngh_idx[-num_neighbors:]
-                    ngh_eidx = ngh_eidx[-num_neighbors:]
+                    ngh_ts = ngh_ts[-n_neighbors:]
+                    ngh_idx = ngh_idx[-n_neighbors:]
+                    ngh_eidx = ngh_eidx[-n_neighbors:]
 
                     # mask out discarded edge_idxs, these should not be seen.
                     if edge_idx_preserve_list is not None:
@@ -258,9 +258,9 @@ class NeighborFinder:
                         ngh_idx = ngh_idx[mask]
                         ngh_eidx = ngh_eidx[mask]
 
-                    assert (len(ngh_idx) <= num_neighbors)
-                    assert (len(ngh_ts) <= num_neighbors)
-                    assert (len(ngh_eidx) <= num_neighbors)
+                    assert (len(ngh_idx) <= n_neighbors)
+                    assert (len(ngh_ts) <= n_neighbors)
+                    assert (len(ngh_eidx) <= n_neighbors)
 
                     # out_ngh_node_batch[i, num_neighbors - len(ngh_idx):] = ngh_idx
                     # out_ngh_t_batch[i, num_neighbors - len(ngh_ts):] = ngh_ts
