@@ -224,6 +224,9 @@ class TGN(torch.nn.Module):
     layer
     :return: Probabilities for both the positive and negative edges
     """
+        if edge_idx_preserve_list is not None and hasattr(self.embedding_module, 'atten_weights_list'):
+            self.embedding_module.atten_weights_list = []
+        
         if candidate_weights_dict is not None:
             if hasattr(self.embedding_module, 'atten_weights_list'):  # ! avoid cuda memory leakage
                 self.embedding_module.atten_weights_list = []
